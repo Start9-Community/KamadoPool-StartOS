@@ -20,49 +20,23 @@ export const resetLatency = sdk.Action.withoutInput(
 
   // the execution function
   async ({ effects }) => {
-    const ok = await sdk.SubContainer.withTemp(
-      effects,
-      { imageId: 'main' },
-      null,
-      'reset-latency',
-      async (sub) => {
-        const res = await sub.exec([
-          'curl',
-          '-sf',
-          '--max-time',
-          '10',
-          '-X',
-          'POST',
-          `http://127.0.0.1:${uiPort}/api/admin/reset-latency`,
-        ])
-        return res.exitCode === 0
+    const ok = await fetch(
+      `http://127.0.0.1:${uiPort}/api/admin/reset-latency`,
+      {
+        method: 'POST',
+        signal: AbortSignal.timeout(10_000),
       },
     )
-
-    if (!ok) {
-      return {
-        version: '1',
-        title: i18n('Reset Block Latency'),
-        message: i18n(
-          'Failed to reset latency stats, the Kamado API did not respond',
-        ),
-        result: null,
-      }
-    }
+      .then((r) => r.ok)
+      .catch(() => false)
 
     return {
       version: '1',
       title: i18n('Reset Block Latency'),
-      message: i18n('Block latency stats reset to zero'),
-      result: {
-        type: 'single',
-        value: i18n(
-          'All latency counters (count, avg, last, wasted work) have been cleared. New measurements will accumulate from the next block.',
-        ),
-        copyable: false,
-        qr: false,
-        masked: false,
-      },
+      message: ok
+        ? i18n('Block latency stats reset to zero')
+        : i18n('Failed to reset latency stats, the Kamado API did not respond'),
+      result: null,
     }
   },
 )

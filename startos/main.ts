@@ -11,40 +11,27 @@ import {
   ckpoolLogFile,
   ckpoolRoot,
   ckpoolSocketDir,
-  curlJson,
+  ckpoolTlsLoopbackPort,
+  fetchJson,
   HealthPayload,
+  healthUrl,
   kamadoDataDir,
   kamadoDbPath,
   kamadoRoot,
   parseCookie,
-  tlsDir,
-  ckpoolTlsLoopbackPort,
-  endpointPorts,
-  portAssignmentSignature,
-  publicDomains,
   stratumInternalPort,
   stratumPublicTlsHostId,
-  stratumTlsInternalPort,
   stratumServers,
   stratumServerUrls,
+  stratumTlsInternalPort,
   stunnelConfDir,
+  tlsDir,
   uiPort,
 } from './utils'
 
-const healthUrl = `http://127.0.0.1:${uiPort}/api/health`
-
 export const main = sdk.setupMain(async ({ effects }) => {
-  /**
-   * ======================== Setup ========================
-   */
   console.info('Starting Kamado Pool!')
 
-  // Service settings; reactive, so a config-action change restarts the daemons
-  // with a freshly rendered ckpool.conf. Deliberately a projection rather than
-  // the whole file: stratumPort / stratumTlsPort are EXTERNAL ports owned by
-  // interfaces.ts, and the in-container binds are fixed constants. Excluding
-  // them here means changing a port is a pure rebind that leaves the pool
-  // running instead of kicking every connected miner.
   const store = await storeJson
     .read((s) => ({
       coinbaseTag: s.coinbaseTag,
@@ -60,80 +47,14 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .const(effects)
   if (!store) throw new Error('No store.json')
 
-  // bitcoind's RPC + ZMQ endpoints over the LXC bridge (see bitcoindBridge in
-  // utils.ts). Each resolves null while bitcoind is absent; the .const()
-  // watches heal main with a restart when bitcoind appears, disappears, or
-  // changes ports, and never on a routine bitcoind update.
   const bitcoind = await bitcoindBridge(effects)
-
-  // Clearnet domains attached to the Stratum (TLS, Public Domain) interface.
-  // There is no config field for this: the domain is added in the StartOS
-  // interface UI, and attaching or removing one restarts main through the same
-  // reactive mechanism as everything else above.
-  //
-  // Used only to label the connection in the dashboard, the certificates
-  // themselves are the OS's concern now, so this never gates anything starting.
-  const tlsDomains = await publicDomains(
-    effects,
-    stratumPublicTlsHostId,
-  ).const()
-
-  // Warn when the OS could not grant a port we asked for.
-  //
-  // `preferredExternalPort` is a request: if the number is already claimed the
-  // OS silently assigns another, and the first symptom is a miner that cannot
-  // connect on the port the config form shows. Surfacing it here turns a
-  // silent substitution into something the user is told about once, naming
-  // both numbers. Pool Status prints the effective ports on demand.
-  //
-  // Read `.const()` so a later reassignment re-fires this; the store field
-  // that de-dupes the warning is read `.once()` and is deliberately absent
-  // from the projection above, so writing it cannot restart the service.
-  const portRequests = await storeJson
-    .read((s) => ({
-      stratum: s.stratumPort,
-      tls: s.stratumTlsPort,
-      publicTls: s.stratumPublicTlsPort,
-    }))
-    .const(effects)
-  if (portRequests) {
-    const ports = await endpointPorts(effects, portRequests, 'const')
-    const mismatched = ports.filter(
-      (p) => p.assigned !== null && p.assigned !== p.requested,
+  const tlsDomains = await sdk.host
+    .get(effects, { hostId: stratumPublicTlsHostId }, (host) =>
+      Object.keys(host?.publicDomains ?? {}).sort(),
     )
-    const signature = portAssignmentSignature(ports)
-    const lastNotified = await storeJson
-      .read((s) => s.notifiedPortAssignment)
-      .once()
+    .const()
 
-    if (mismatched.length > 0 && signature !== lastNotified) {
-      await sdk.notification.create(effects, {
-        level: 'warning',
-        title: i18n('Stratum port changed by StartOS'),
-        message: mismatched
-          .map((p) =>
-            i18n('{label}: requested {requested}, assigned {assigned}')
-              .replace('{label}', p.label)
-              .replace('{requested}', String(p.requested))
-              .replace('{assigned}', String(p.assigned)),
-          )
-          .concat(
-            i18n(
-              'The port you asked for was already in use, so StartOS assigned another one. Point your miners at the assigned port, or pick a free one in Configure.',
-            ),
-          )
-          .join('\n'),
-      })
-    }
-    if (signature !== lastNotified)
-      await storeJson.merge(effects, { notifiedPortAssignment: signature })
-  }
-
-  // All Kamado processes (kamado-api, ckpool, stunnel) share ONE
-  // subcontainer, mirroring the single 0.3.x container: kamado-api reaches
-  // ckpool's Unix socket in /run/ckpool and tails its log file without any
-  // cross-container plumbing.
-  const kamadoSub = await sdk.SubContainer.eager(
+  const kamadoSub = sdk.SubContainer.of(
     effects,
     { imageId: 'main' },
     sdk.Mounts.of()
@@ -158,145 +79,77 @@ export const main = sdk.setupMain(async ({ effects }) => {
       }),
     'kamado',
   )
+  const rootfs = await kamadoSub.rootfs
 
-  // bitcoind uses cookie authentication in 0.4.0 (no more rpcuser/rpcpassword
-  // pointers). Read the cookie from the read-only dependency mount and watch
-  // it: a cookie rotation (bitcoind restart) restarts Kamado with fresh
-  // credentials. Null until bitcoind has started at least once.
-  const cookieRaw = await FileHelper.string(
-    `${kamadoSub.rootfs}/mnt/bitcoind/.cookie`,
+  const cookie = parseCookie(
+    await FileHelper.string(`${rootfs}${btcMountpoint}/.cookie`)
+      .read()
+      .const(effects),
   )
-    .read()
-    .const(effects)
-  const cookie = parseCookie(cookieRaw)
 
-  // Placeholders keep kamado-api bootable while bitcoind is unresolved: the
-  // dashboard comes up, reports Bitcoin Core as unreachable, and the reactive
-  // reads above heal everything once the dependency is satisfied.
+  // Placeholders keep the dashboard up while bitcoind is absent; the watches above heal main once it appears
   const rpcAddr = bitcoind.rpc ?? '127.0.0.1:8332'
   const rpcUser = cookie?.user ?? '__cookie__'
   const rpcPassword = cookie?.password ?? 'bitcoind-not-yet-available'
+  const zmqBlock = bitcoind.zmqBlock ? `tcp://${bitcoind.zmqBlock}` : ''
 
-  // ckpool has TWO independent new-block detection paths. Wire up both so
-  // we're never blind to a tip change (every second of stale work in solo
-  // mode is hashrate burned on a dead block):
-  //   1. Blockpoll thread: polls getbestblockhash every `blockpoll` ms. Only
-  //      runs when notify=false, so keep notify=false.
-  //   2. ZMQ hashblock subscriber: instant push from bitcoind. Point it at
-  //      the real bridge endpoint; fall back to ckpool's (dead, harmless)
-  //      loopback default while bitcoind's ZMQ interface is unavailable.
-  const ckpoolZmqBlock = bitcoind.zmqBlock
-    ? `tcp://${bitcoind.zmqBlock}`
-    : 'tcp://127.0.0.1:28332'
-
-  // Rendered ckpool.conf, written to the subcontainer rootfs (ephemeral, so
-  // RPC credentials never touch a persisted volume). `btcaddress` is only
-  // consulted once at startup for ckpool's coinbase-builder self-test; solo
-  // mode pays the worker's stratum address, never this one. The right
-  // self-test address depends on the active network, which ckpool-run.sh
-  // detects from bitcoind at startup and substitutes for the placeholder.
-  const ckpoolConfTemplate = JSON.stringify(
-    {
-      btcd: [
-        {
-          url: rpcAddr,
-          auth: rpcUser,
-          pass: rpcPassword,
-          notify: false,
-        },
-      ],
-      btcaddress: '@SELFTEST_ADDRESS@',
-      btcsig: store.coinbaseTag,
-      blockpoll: 100,
-      update_interval: 30,
-      // Fixed three-entry array; see stratumServerUrls for why it never
-      // varies with the TLS settings.
-      serverurl: stratumServerUrls(),
-      mindiff: store.minDiff,
-      startdiff: store.startDiff,
-      maxdiff: store.maxDiff,
-      dropidle: store.dropIdle,
-      zmqblock: ckpoolZmqBlock,
-      logdir: ckpoolLogDir,
-    },
-    null,
-    2,
-  )
-
-  await mkdir(`${kamadoSub.rootfs}/etc/ckpool`, { recursive: true })
+  // Rendered onto the subcontainer rootfs so the RPC credentials never land on a volume.
+  // kamado-ckpool-run.sh fills in @SELFTEST_ADDRESS@ once it knows the chain.
+  await mkdir(`${rootfs}/etc/ckpool`, { recursive: true })
   await writeFile(
-    `${kamadoSub.rootfs}/etc/ckpool/ckpool.conf.template`,
-    ckpoolConfTemplate,
+    `${rootfs}/etc/ckpool/ckpool.conf.template`,
+    JSON.stringify(
+      {
+        btcd: [
+          { url: rpcAddr, auth: rpcUser, pass: rpcPassword, notify: false },
+        ],
+        btcaddress: '@SELFTEST_ADDRESS@',
+        btcsig: store.coinbaseTag,
+        blockpoll: 100,
+        update_interval: 30,
+        serverurl: stratumServerUrls,
+        mindiff: store.minDiff,
+        startdiff: store.startDiff,
+        maxdiff: store.maxDiff,
+        dropidle: store.dropIdle,
+        zmqblock: zmqBlock || 'tcp://127.0.0.1:28332',
+        logdir: ckpoolLogDir,
+      },
+      null,
+      2,
+    ),
   )
 
-  // Public-domain TLS is StartOS's job, not ours, see the stratum-tls-public
-  // interface in interfaces.ts. The OS terminates ACME-backed TLS and forwards
-  // plaintext into ckpool's third bind, so nothing here fetches, writes or
-  // serves a certificate for a public domain.
-  //
-  // This package used to do that itself with sdk.getSslCertificate() plus
-  // stunnel SNI sections, which cannot work: StartOS only provisions ACME
-  // certificates for bindings it terminates TLS for, so a raw TCP binding was
-  // handed no CA-issued certificate to serve and miners got the self-signed
-  // one (mbedtls -0x2700, X509_CERT_VERIFY_FAILED).
-  //
-  // stunnel is therefore left with exactly one job: the self-signed
-  // certificate for miners on the local network.
-  await mkdir(`${kamadoSub.rootfs}${stunnelConfDir}`, { recursive: true })
-  const stunnelEnabled = store.tlsEnabled
-
-  // stunnel.conf is rendered here rather than shipped as a static asset so it
-  // stays next to the ports it references. `accept` is the fixed in-container
-  // TLS port, which the OS forwards the user's chosen external port to.
-  //
-  // Certificate selection is by SNI, and it degrades in exactly the direction
-  // we need. The primary service's certificate is what a client gets when it
-  // sends no SNI or an unrecognised one, which is precisely the miner that
-  // connected to a bare LAN IP and therefore cannot use a public certificate
-  // anyway. A miner that connected by domain name sends SNI, matches a
-  // secondary service, and gets the CA-issued certificate for that name.
-  //
-  // Each service `connect`s to a different ckpool loopback bind so ckpool
-  // tags the two paths with different serverurl indices, which is how the
-  // dashboard's lock badge can name the certificate in use.
-  if (stunnelEnabled) {
-    const stunnelConf = [
-      'foreground = yes',
-      'pid =',
-      'output = /dev/stdout',
-      // debug = 5 (notice) so each successful TLS handshake produces a
-      // "Service [stratum] accepted connection" / "connected from" pair in the
-      // service logs. Failures (bad cert, alerts, cipher rejection) surface at
-      // level 3, so both happy- and sad-path events are visible without
-      // flipping levels per incident.
-      'debug = 5',
-      // Pin a modern TLS floor. Any miner firmware younger than ~2018 speaks
-      // TLS 1.2, and TLS 1.0/1.1 are deprecated anyway.
-      'sslVersion = all',
-      'options = NO_SSLv2',
-      'options = NO_SSLv3',
-      'options = NO_TLSv1',
-      'options = NO_TLSv1_1',
-      '',
-      '[stratum]',
-      `accept = 0.0.0.0:${stratumTlsInternalPort}`,
-      `connect = 127.0.0.1:${ckpoolTlsLoopbackPort}`,
-      `cert = ${tlsDir}/stratum.pem`,
-      // No client-cert auth, stratum over TLS is opportunistic encryption;
-      // the stratum protocol layer handles miner auth via username.
-      'verify = 0',
-      '',
-    ].join('\n')
-
+  if (store.tlsEnabled) {
+    await mkdir(`${rootfs}${stunnelConfDir}`, { recursive: true })
     await writeFile(
-      `${kamadoSub.rootfs}${stunnelConfDir}/stratum.conf`,
-      stunnelConf,
+      `${rootfs}${stunnelConfDir}/stratum.conf`,
+      [
+        'foreground = yes',
+        'pid =',
+        'output = /dev/stdout',
+        'debug = 5',
+        'sslVersion = all',
+        'options = NO_SSLv2',
+        'options = NO_SSLv3',
+        'options = NO_TLSv1',
+        'options = NO_TLSv1_1',
+        '',
+        '[stratum]',
+        `accept = 0.0.0.0:${stratumTlsInternalPort}`,
+        `connect = 127.0.0.1:${ckpoolTlsLoopbackPort}`,
+        `cert = ${tlsDir}/stratum.pem`,
+        'verify = 0',
+        '',
+      ].join('\n'),
     )
   }
 
-  /**
-   * ======================== Daemons ========================
-   */
+  const apiUnreachable = {
+    result: 'failure',
+    message: i18n('Kamado API is unreachable, service may be down'),
+  } as const
+
   return sdk.Daemons.of(effects)
     .addOneshot('dirs', {
       subcontainer: kamadoSub,
@@ -326,18 +179,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
           BITCOIN_RPC_PASSWORD: rpcPassword,
           POLL_INTERVAL: '5s',
           KAMADO_LOG_LEVEL: store.logLevel,
-          // Empty disables kamado-api's ZMQ subscriber (RPC polling fallback
-          // remains active either way).
-          BITCOIN_ZMQ_BLOCK:
-            store.zmqEnabled && bitcoind.zmqBlock
-              ? `tcp://${bitcoind.zmqBlock}`
-              : '',
-          // Empty means "use mempool.space defaults" for dashboard links.
+          BITCOIN_ZMQ_BLOCK: store.zmqEnabled ? zmqBlock : '',
           MEMPOOL_BASE_URL: store.mempoolExplorerUrl ?? '',
-          // Tells the dashboard what each ckpool serverurl index means, so
-          // the lock badge can name the certificate a miner is using instead
-          // of assuming a bind order. Labels only mention domains we actually
-          // managed to load a certificate for.
           STRATUM_SERVERS: JSON.stringify(stratumServers(tlsDomains)),
         },
       },
@@ -355,12 +198,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .addDaemon('ckpool', {
       subcontainer: kamadoSub,
       exec: {
-        // Waits until bitcoind answers getblockchaininfo, resolves the
-        // network-correct self-test address, renders the final ckpool.conf,
-        // then execs ckpool. When kamado-api kills ckpool on bitcoind
-        // failure (so miners can fail over), StartOS restarts the daemon and
-        // the script blocks again until bitcoind recovers, the 0.3.x
-        // supervised-restart loop, expressed as a daemon.
         command: ['kamado-ckpool-run.sh'],
         env: {
           BITCOIN_RPC_URL: `http://${rpcAddr}`,
@@ -384,24 +221,17 @@ export const main = sdk.setupMain(async ({ effects }) => {
     })
     .addHealthCheck('bitcoin', {
       ready: {
-        display: i18n('Bitcoin Core RPC'),
+        display: i18n('Bitcoin RPC'),
         fn: async () => {
-          const h = await curlJson<HealthPayload>(kamadoSub, healthUrl)
-          if (!h)
-            return {
-              result: 'failure',
-              message: i18n('Kamado API is unreachable, service may be down'),
-            }
+          const h = await fetchJson<HealthPayload>(healthUrl)
+          if (!h) return apiUnreachable
           if (h.bitcoin)
-            return {
-              result: 'success',
-              message: i18n('Connected to Bitcoin Core'),
-            }
+            return { result: 'success', message: i18n('Connected to Bitcoin') }
           return {
             result: 'failure',
             message: h.last_error
-              ? `${i18n('Bitcoin Core RPC is unreachable')} (${h.last_error})`
-              : i18n('Bitcoin Core RPC is unreachable'),
+              ? `${i18n('Bitcoin RPC is unreachable')} (${h.last_error})`
+              : i18n('Bitcoin RPC is unreachable'),
           }
         },
       },
@@ -411,23 +241,19 @@ export const main = sdk.setupMain(async ({ effects }) => {
       ready: {
         display: i18n('Block Submission'),
         fn: async () => {
-          const h = await curlJson<HealthPayload>(kamadoSub, healthUrl)
-          if (!h)
-            return {
-              result: 'failure',
-              message: i18n('Kamado API is unreachable, service may be down'),
-            }
-          const gap = h.submit_gap ?? 0
-          if (gap === 0)
+          const h = await fetchJson<HealthPayload>(healthUrl)
+          if (!h) return apiUnreachable
+          if (!h.submit_gap)
             return {
               result: 'success',
               message: i18n('All block submissions confirmed'),
             }
           return {
             result: 'failure',
-            message: `${gap} ${i18n(
-              'block(s) submitted to bitcoind but not confirmed, check Bitcoin Core logs',
-            )}`,
+            message: i18n(
+              '${gap} block(s) submitted to Bitcoin but not confirmed, check the Bitcoin logs',
+              { gap: String(h.submit_gap) },
+            ),
           }
         },
       },
@@ -439,14 +265,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
             ready: {
               display: i18n('ZMQ Block Feed'),
               fn: async () => {
-                const h = await curlJson<HealthPayload>(kamadoSub, healthUrl)
-                if (!h)
-                  return {
-                    result: 'failure',
-                    message: i18n(
-                      'Kamado API is unreachable, service may be down',
-                    ),
-                  }
+                const h = await fetchJson<HealthPayload>(healthUrl)
+                if (!h) return apiUnreachable
                 if (h.zmq_stale)
                   return {
                     result: 'failure',
@@ -469,10 +289,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
         ? {
             subcontainer: kamadoSub,
             exec: {
-              // Generates (or migrates) the persisted self-signed stratum
-              // certificate under /root/.kamado/tls. Idempotent: regenerates
-              // only when files are missing or the cert-format version marker
-              // is outdated.
               command: ['kamado-tls-init.sh'],
               env: { TLS_DIR: tlsDir },
             },
@@ -481,7 +297,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         : null,
     )
     .addDaemon('stunnel', () =>
-      stunnelEnabled
+      store.tlsEnabled
         ? {
             subcontainer: kamadoSub,
             exec: {
@@ -503,9 +319,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
                   },
                 ),
             },
-            // stunnel now runs only when local TLS is on, and that is exactly
-            // when the self-signed certificate it serves is generated, so the
-            // oneshot is always the dependency.
             requires: ['tls-cert'],
           }
         : null,

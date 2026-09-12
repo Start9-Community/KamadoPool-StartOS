@@ -1,0 +1,3 @@
+[submodule "kamado"]
+	path = kamado
+	url = https://github.com/carbonatedberry/KamadoPool.git

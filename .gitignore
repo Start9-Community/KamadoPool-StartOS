@@ -3,7 +3,6 @@ startos/*.js
 node_modules/
 .DS_Store
 .vscode/
+docker-images
 javascript
 ncc-cache
-kamado-src/
-kamado-pool-startos/
