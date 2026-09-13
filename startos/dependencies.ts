@@ -17,7 +17,7 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
         'Kamado Pool uses ZMQ block notifications for sub-second stale-work detection, every second of stale work in solo mode is hashrate burned on a dead block.',
       ),
     })
-  else await sdk.action.clearTask(effects, 'bitcoind:autoconfig')
+  else await sdk.action.clearTask(effects, `bitcoind:${autoconfig.id}`)
 
   return {
     bitcoind: {

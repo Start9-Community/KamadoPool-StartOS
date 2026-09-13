@@ -166,7 +166,7 @@ Both volumes are copied wholesale (`sdk.Backups.ofVolumes('main', 'ckpool')`); n
 
 1. The chain is whichever one Bitcoin is running; it is detected at start and there is no selector.
 2. The external stratum ports are assigned by StartOS when the interfaces are first bound (3333, 3334 and 3335 are requested) and cannot be changed from the package.
-3. Which domain serves the public-domain TLS endpoint is not a setting; it follows whatever is attached to that interface. Only its port is configurable.
+3. Which domain serves the public-domain TLS endpoint is not a setting; it follows whatever is attached to that interface.
 4. The public-domain certificate is issued by StartOS. If issuance fails, the endpoint serves StartOS's own certificate, which public clients reject.
 5. The dashboard is unauthenticated; see [Network Access and Interfaces](#network-access-and-interfaces).
 6. Proof-of-work header capture covers only shares accepted after CKPool was patched to log them; earlier best shares cannot be reconstructed.
