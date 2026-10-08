@@ -1,7 +1,6 @@
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
-import { logLevels } from '../utils'
 
 const { InputSpec, Value } = sdk
 
@@ -32,7 +31,7 @@ export const inputSpec = InputSpec.of({
   startDiff: Value.number({
     name: i18n('Starting Difficulty'),
     description: i18n(
-      'Initial vardiff target for new miner connections. Bitaxe-class miners typically land around 16384.',
+      "The difficulty a miner starts at when the pool has no hashrate on record for it; vardiff then adjusts it to the miner's hashrate. A miner the pool has seen before resumes from its recorded hashrate instead.",
     ),
     required: true,
     default: 16384,
@@ -66,16 +65,10 @@ export const inputSpec = InputSpec.of({
     min: 0,
     units: i18n('seconds'),
   }),
-  logLevel: Value.select({
-    name: i18n('Log Level'),
-    description: i18n('Verbosity of the kamado-api log output.'),
-    values: logLevels,
-    default: 'info',
-  }),
   mempoolExplorerUrl: Value.text({
     name: i18n('Custom Block Explorer URL'),
     description: i18n(
-      'Base URL of a self-hosted mempool instance for dashboard links (e.g. https://mempool.example.com). Kamado appends /address/<addr> and /block/<hash>, so the instance must follow the standard mempool.space URL layout. Leave empty to use the public mempool.space.',
+      'Base URL of a self-hosted mempool instance for dashboard links (e.g. https://mempool.example.com). Kamado appends /address/ followed by an address, and /block/ followed by a block hash, so the instance must follow the standard mempool.space URL layout. Leave empty to use the public mempool.space.',
     ),
     required: false,
     default: null,

@@ -317,11 +317,9 @@ export const poolStatus = sdk.Action.withoutInput(
       title: i18n('Pool Status'),
       message: summary,
       result: {
-        type: 'single',
+        type: 'multiline',
         value: lines.join('\n'),
         copyable: true,
-        qr: false,
-        masked: false,
       },
     }
   },

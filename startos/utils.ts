@@ -5,7 +5,6 @@ import {
   zmqHostId as btcZmqHostId,
   zmqPortBlock as btcZmqPortBlock,
 } from 'bitcoin-core-startos/startos/utils'
-import { i18n } from './i18n'
 import { sdk } from './sdk'
 
 export const uiPort = 8080
@@ -47,14 +46,6 @@ export const tlsVolumeFiles = [
 ]
 
 export const healthUrl = `http://127.0.0.1:${uiPort}/api/health`
-
-export const logLevels = {
-  debug: i18n('Debug'),
-  info: i18n('Info'),
-  warn: i18n('Warn'),
-  error: i18n('Error'),
-}
-export type LogLevel = keyof typeof logLevels
 
 export type HealthPayload = {
   ok: boolean

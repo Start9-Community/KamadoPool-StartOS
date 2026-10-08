@@ -27,10 +27,6 @@ const dict = {
   'TLS-encrypted stratum endpoint for miners on your local network, using the self-signed certificate (see the Stratum TLS Certificate action). Do not attach a public domain here, StartOS cannot issue a certificate for this endpoint; use Stratum (TLS, Public Domain) instead': 21,
   'TLS-encrypted stratum endpoint for miners connecting over the internet. Attach a domain here and StartOS issues a Let’s Encrypt certificate for it, which any miner validates with nothing pasted in': 22,
   // utils.ts
-  Debug: 23,
-  Info: 24,
-  Warn: 25,
-  Error: 26,
   // dependencies.ts
   'Kamado Pool uses ZMQ block notifications for sub-second stale-work detection, every second of stale work in solo mode is hashrate burned on a dead block.': 27,
   // actions/config.ts
@@ -41,7 +37,7 @@ const dict = {
   'Stratum TLS (Local Network)': 32,
   'Serve the self-signed certificate on the local-network TLS port. Miners have to trust it (see the Stratum TLS Certificate action) or connect with verification disabled. You do NOT need this for miners connecting over a public domain: attach the domain to the Stratum (TLS, Public Domain) interface instead, and StartOS issues a publicly trusted certificate for it automatically.': 33,
   'Starting Difficulty': 34,
-  'Initial vardiff target for new miner connections. Bitaxe-class miners typically land around 16384.': 35,
+  "The difficulty a miner starts at when the pool has no hashrate on record for it; vardiff then adjusts it to the miner's hashrate. A miner the pool has seen before resumes from its recorded hashrate instead.": 35,
   'Minimum Difficulty': 36,
   'Floor for the vardiff algorithm.': 37,
   'Maximum Difficulty': 38,
@@ -49,10 +45,8 @@ const dict = {
   'Drop Idle (seconds)': 40,
   'Disconnect clients that have not submitted a share in this many seconds. 0 disables the idle disconnect.': 41,
   seconds: 42,
-  'Log Level': 43,
-  'Verbosity of the kamado-api log output.': 44,
   'Custom Block Explorer URL': 45,
-  'Base URL of a self-hosted mempool instance for dashboard links (e.g. https://mempool.example.com). Kamado appends /address/<addr> and /block/<hash>, so the instance must follow the standard mempool.space URL layout. Leave empty to use the public mempool.space.': 46,
+  'Base URL of a self-hosted mempool instance for dashboard links (e.g. https://mempool.example.com). Kamado appends /address/ followed by an address, and /block/ followed by a block hash, so the instance must follow the standard mempool.space URL layout. Leave empty to use the public mempool.space.': 46,
   'Must be an http:// or https:// URL with no whitespace': 47,
   Configure: 48,
   'Customize vardiff, TLS, block notifications, logging, and explorer links': 49,
@@ -111,7 +105,7 @@ const dict = {
   // actions/rebuildShareStats.ts
   'Rebuild Share Statistics': 101,
   'Recounts the all-time share statistics, the difficulty distribution and rejection reasons on the Stats page, by rereading CKPool’s log from the beginning. Use this if those totals look wrong or reset. The stored totals are only replaced when the log accounts for more shares than they do, so this can add history back but never erase it.': 102,
-  'On a pool with a long history this reads millions of log lines and can take a while. The pool keeps mining throughout.': 103,
+  'If the log accounts for more shares than the stored totals, the all-time share statistics, difficulty distribution and rejection reasons are replaced with the recount. On a pool with a long history this reads millions of log lines and can take a while. The pool keeps mining throughout.': 103,
   'Failed to rebuild share statistics, the Kamado API did not respond': 104,
   'Share statistics rebuilt from the CKPool log': 105,
   'Share statistics left unchanged': 106,
@@ -126,6 +120,7 @@ const dict = {
   'Zeroes the block-update latency counters (avg, last, wasted work, block count). Use this after tuning ZMQ or ckpool to start fresh measurements.': 113,
   'Block latency stats reset to zero': 114,
   'Failed to reset latency stats, the Kamado API did not respond': 115,
+  'Zeroes the block-update latency counters (average, last, wasted work and block count). The measurements collected so far are lost.': 125,
   // actions/showTlsCert.ts
   'Enable Stratum TLS (Local Network) in Configure first': 116,
   '(not yet generated, start the service once)': 117,

@@ -18,15 +18,23 @@ Freshly scaffolded? Work the
 guide page, not a file in this repo — read it, don't copy it in.
 
 Keep `README.md` (technical reference for an AI support or administering agent) and
-`instructions.md` (end-user docs) in sync with your changes.
+`instructions.md` (end-user docs) in sync with your changes. This file restates neither:
+whoever changes the package has both, so it carries only what they don't — repo mechanics,
+a change that looks right and is not, where the next thing gets added, a naming trap, a
+build or test invocation particular to this repo.
 
-**Bugs and feature requests are GitHub issues on this repo** — file them as you find them.
+**Fix a defect you spot rather than reporting it** — you have the package open and the
+context to be sure. File **a GitHub issue on this repo** only when the call isn't yours to
+make: you can't pin the cause down, two defensible fixes exist, or it's too large to ride on
+the work in hand. An open issue is a report, not a queue — implement one when you're asked
+to or when it's labelled `Approved`, then close it with `Closes #<n>`.
+
 Don't record work in the repo instead: no `TODO.md`, no `NOTES.md`, no `PLAN.md`. What you
 verified, tried, and decided belongs in the commit message and the PR body.
 
 ## This repo
 
-- **`kamado/` is the application, as a submodule.** The `Dockerfile` builds everything from it: ckpool is cloned at the commit named in `kamado/ckpool/CKPOOL_COMMIT` with `kamado/ckpool/patches/` applied, the dashboard and API are built from `kamado/ui` and `kamado/api`. Don't pin ckpool or copy source into this repo a second time; bump the submodule (`UPDATING.md`).
-- **ckpool's `serverurl` array (`stratumServerUrls` in `startos/utils.ts`) is a contract with the dashboard.** ckpool tags each miner with the index of the bind it arrived on and `STRATUM_SERVERS` tells the dashboard what each index means, so the array is always all three entries in that order — never emit it conditionally on the TLS settings.
-- **Don't add a stratum port setting.** The in-container ports are fixed because a binding is keyed by host and internal port, so moving one orphans the old binding and the user sees a duplicate interface; and the external ports are the OS's — `preferredExternalPort` is honoured only when a binding is first created, after which StartOS reclaims the port it already assigned, so a setting that feeds it can never move a port.
-- **`stratumServers()` labels are English on purpose** — they render inside the upstream dashboard, not the StartOS UI.
+- **Don't pin ckpool or copy upstream source into this repo** — the `kamado/` submodule carries the app and ckpool's pin (`kamado/ckpool/CKPOOL_COMMIT`) with its patches; bump the submodule per `UPDATING.md`.
+- **Keep `stratumServerUrls` (`startos/utils.ts`) all three entries, in that order, regardless of the TLS settings** — the dashboard maps each miner's listener index through `STRATUM_SERVERS`.
+- **Don't add a stratum port setting** — moving an internal port orphans its binding, and StartOS keeps the external port it first assigned whatever `preferredExternalPort` says.
+- **Don't translate the `stratumServers()` labels** — they render in the English-only upstream dashboard, not the StartOS UI.

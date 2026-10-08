@@ -13,7 +13,7 @@ export const rebuildShareStats = sdk.Action.withoutInput(
       'Recounts the all-time share statistics, the difficulty distribution and rejection reasons on the Stats page, by rereading CKPool’s log from the beginning. Use this if those totals look wrong or reset. The stored totals are only replaced when the log accounts for more shares than they do, so this can add history back but never erase it.',
     ),
     warning: i18n(
-      'On a pool with a long history this reads millions of log lines and can take a while. The pool keeps mining throughout.',
+      'If the log accounts for more shares than the stored totals, the all-time share statistics, difficulty distribution and rejection reasons are replaced with the recount. On a pool with a long history this reads millions of log lines and can take a while. The pool keeps mining throughout.',
     ),
     allowedStatuses: 'only-running',
     group: null,

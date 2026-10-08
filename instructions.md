@@ -61,14 +61,14 @@ Every share that sets a new record is stored with the block header behind it. Th
 
 ## Configuration
 
-Everything lives in **Configure**: vardiff (starting, minimum and maximum difficulty), the idle-client disconnect, the coinbase tag embedded in solved blocks, ZMQ, local-network TLS, the log level, and an optional self-hosted mempool instance for the dashboard's explorer links. Saving restarts the pool; miners reconnect on their own.
+Everything lives in **Configure**: vardiff (starting, minimum and maximum difficulty), the idle-client disconnect, the coinbase tag embedded in solved blocks, ZMQ, local-network TLS, and an optional self-hosted mempool instance for the dashboard's explorer links. Saving restarts the pool; miners reconnect on their own.
 
 ### Actions
 
 - **Pool Status**: a copyable snapshot of Bitcoin sync, pool health, miners, hashrate, found blocks, block submissions and every stratum endpoint's port and domains. Run it first when anything looks wrong.
-- **Stratum TLS Certificate**: the fingerprint and PEM of the self-signed certificate.
+- **Stratum TLS Certificate**: the fingerprint and PEM of the self-signed certificate; the PEM can also be downloaded as `stratum.crt`.
 - **Regenerate TLS Certificate**: a fresh self-signed certificate; restarts the pool.
-- **Reset Block Latency**: zeroes the block-update latency counters after tuning ZMQ or Bitcoin.
+- **Reset Block Latency**: zeroes the block-update latency counters after tuning ZMQ or Bitcoin. It asks for confirmation first, since the measurements so far are lost.
 - **Rebuild Share Statistics**: recounts the all-time difficulty distribution and rejection reasons from CKPool's log, for when those totals look wrong. It only ever adds history back, never removes it, and can take a while on a pool with a long log.
 
 ## Troubleshooting
