@@ -91,7 +91,7 @@ export const config = sdk.Action.withInput(
   async ({ effects }) => ({
     name: i18n('Configure'),
     description: i18n(
-      'Customize vardiff, TLS, block notifications, logging, and explorer links',
+      'Customize vardiff, TLS, block notifications, and explorer links',
     ),
     warning: null,
     allowedStatuses: 'any',

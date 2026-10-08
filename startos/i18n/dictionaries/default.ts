@@ -49,7 +49,7 @@ const dict = {
   'Base URL of a self-hosted mempool instance for dashboard links (e.g. https://mempool.example.com). Kamado appends /address/ followed by an address, and /block/ followed by a block hash, so the instance must follow the standard mempool.space URL layout. Leave empty to use the public mempool.space.': 46,
   'Must be an http:// or https:// URL with no whitespace': 47,
   Configure: 48,
-  'Customize vardiff, TLS, block notifications, logging, and explorer links': 49,
+  'Customize vardiff, TLS, block notifications, and explorer links': 49,
   // actions/poolStatus.ts
   Stratum: 50,
   'Stratum (TLS, Local Network)': 51,
