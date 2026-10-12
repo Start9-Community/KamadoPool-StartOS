@@ -320,6 +320,9 @@ export const poolStatus = sdk.Action.withoutInput(
         type: 'multiline',
         value: lines.join('\n'),
         copyable: true,
+        qr: false,
+        masked: false,
+        filename: null,
       },
     }
   },

@@ -65,6 +65,7 @@ export const rebuildShareStats = sdk.Action.withoutInput(
             ),
         copyable: false,
         qr: false,
+        launchable: false,
         masked: false,
       },
     }

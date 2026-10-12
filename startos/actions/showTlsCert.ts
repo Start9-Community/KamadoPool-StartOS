@@ -38,6 +38,7 @@ export async function tlsCertResult(): Promise<
           value: (await read('fingerprint.txt')) ?? notYet,
           copyable: true,
           qr: false,
+          launchable: false,
           masked: false,
         },
         {
@@ -49,6 +50,9 @@ export async function tlsCertResult(): Promise<
           value: crt ?? notYet,
           copyable: true,
           ...(crt ? { filename: 'stratum.crt' } : {}),
+          qr: false,
+          masked: false,
+          filename: null,
         },
       ],
     },
