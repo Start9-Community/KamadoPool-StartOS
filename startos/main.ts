@@ -135,7 +135,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         'options = NO_TLSv1_1',
         '',
         '[stratum]',
-        `accept = 0.0.0.0:${stratumTlsInternalPort}`,
+        `accept = :::${stratumTlsInternalPort}`,
         `connect = 127.0.0.1:${ckpoolTlsLoopbackPort}`,
         `cert = ${tlsDir}/stratum.pem`,
         'verify = 0',
