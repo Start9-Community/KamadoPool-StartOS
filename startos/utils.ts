@@ -73,9 +73,9 @@ export type StratumServer = {
 
 // ckpool tags each client with the index of the serverurl it arrived on, so the order is fixed
 export const stratumServerUrls = [
-  `0.0.0.0:${stratumInternalPort}`,
+  `[::]:${stratumInternalPort}`,
   `127.0.0.1:${ckpoolTlsLoopbackPort}`,
-  `0.0.0.0:${ckpoolPublicTlsPort}`,
+  `[::]:${ckpoolPublicTlsPort}`,
 ]
 
 /** Labels are rendered by the English-only dashboard, not the StartOS UI */
