@@ -1,16 +1,18 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.2.8:2',
+  version: '0.2.9:0',
   releaseNotes: {
-    en_US: "Miners can now connect over the server's IPv6 addresses.",
+    en_US:
+      'Fixes Kamado Pool being unable to connect to Bitcoin 31.x, where the Bitcoin RPC health check reported Bitcoin as unreachable. Upstream changes: https://github.com/carbonatedberry/KamadoPool/commits/main',
     es_ES:
-      'Los mineros ahora pueden conectarse a través de las direcciones IPv6 del servidor.',
+      'Corrige que Kamado Pool no pudiera conectarse a Bitcoin 31.x, donde la comprobación de salud de Bitcoin RPC indicaba que Bitcoin era inalcanzable. Cambios en el proyecto original: https://github.com/carbonatedberry/KamadoPool/commits/main',
     de_DE:
-      'Miner können sich jetzt über die IPv6-Adressen des Servers verbinden.',
-    pl_PL: 'Koparki mogą teraz łączyć się przez adresy IPv6 serwera.',
+      'Behebt, dass Kamado Pool keine Verbindung zu Bitcoin 31.x herstellen konnte und die Zustandsprüfung „Bitcoin RPC“ Bitcoin als nicht erreichbar meldete. Änderungen im Upstream-Projekt: https://github.com/carbonatedberry/KamadoPool/commits/main',
+    pl_PL:
+      'Naprawia brak połączenia Kamado Pool z Bitcoin 31.x, przy którym kontrola stanu Bitcoin RPC zgłaszała, że Bitcoin jest nieosiągalny. Zmiany w projekcie źródłowym: https://github.com/carbonatedberry/KamadoPool/commits/main',
     fr_FR:
-      'Les mineurs peuvent désormais se connecter via les adresses IPv6 du serveur.',
+      'Corrige l’impossibilité pour Kamado Pool de se connecter à Bitcoin 31.x, où le contrôle de santé Bitcoin RPC signalait Bitcoin comme injoignable. Modifications du projet amont : https://github.com/carbonatedberry/KamadoPool/commits/main',
   },
   migrations: {
     up: async ({ effects }) => {},
