@@ -5,7 +5,6 @@ import {
   zmqHostId as btcZmqHostId,
   zmqPortBlock as btcZmqPortBlock,
 } from 'bitcoin-core-startos/startos/utils'
-import { i18n } from './i18n'
 import { sdk } from './sdk'
 
 export const uiPort = 8080
@@ -48,14 +47,6 @@ export const tlsVolumeFiles = [
 
 export const healthUrl = `http://127.0.0.1:${uiPort}/api/health`
 
-export const logLevels = {
-  debug: i18n('Debug'),
-  info: i18n('Info'),
-  warn: i18n('Warn'),
-  error: i18n('Error'),
-}
-export type LogLevel = keyof typeof logLevels
-
 export type HealthPayload = {
   ok: boolean
   ckpool: boolean
@@ -82,9 +73,9 @@ export type StratumServer = {
 
 // ckpool tags each client with the index of the serverurl it arrived on, so the order is fixed
 export const stratumServerUrls = [
-  `0.0.0.0:${stratumInternalPort}`,
+  `[::]:${stratumInternalPort}`,
   `127.0.0.1:${ckpoolTlsLoopbackPort}`,
-  `0.0.0.0:${ckpoolPublicTlsPort}`,
+  `[::]:${ckpoolPublicTlsPort}`,
 ]
 
 /** Labels are rendered by the English-only dashboard, not the StartOS UI */

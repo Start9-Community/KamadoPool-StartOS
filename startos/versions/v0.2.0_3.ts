@@ -2,7 +2,6 @@ import { IMPOSSIBLE, VersionInfo, YAML } from '@start9labs/start-sdk'
 import { rm } from 'fs/promises'
 import { storeJson } from '../fileModels/store.json'
 import { sdk } from '../sdk'
-import { LogLevel } from '../utils'
 
 type LegacyConfig = {
   tls?: { enabled?: string }
@@ -13,7 +12,6 @@ type LegacyConfig = {
     mindiff?: number
     maxdiff?: number
     dropidle?: number
-    'log-level'?: LogLevel
     'mempool-explorer'?: { type?: string; url?: string }
   }
 }
@@ -48,7 +46,6 @@ export const v0_2_0 = VersionInfo.of({
         minDiff: adv.mindiff ?? 1000,
         maxDiff: adv.maxdiff ?? 0,
         dropIdle: adv.dropidle ?? 0,
-        logLevel: adv['log-level'] ?? 'info',
         zmqEnabled: configYaml['zmq-enabled'] ?? true,
         tlsEnabled: configYaml.tls?.enabled === 'enabled',
         mempoolExplorerUrl:

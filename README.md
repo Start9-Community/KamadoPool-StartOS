@@ -83,7 +83,7 @@ The package owns one persisted settings file and regenerates everything else fro
 | `stratum.conf` (stunnel)             | subcontainer rootfs  | Rendered on every start, only when local TLS is enabled                | Every start                                                               | No                 |
 | `tls/stratum.{crt,key,pem}`, `tls/cert_version`, `tls/fingerprint.txt` | `main` volume | Generated on the first start with local TLS enabled          | The Regenerate TLS Certificate action, or automatically when the certificate format version in `kamado-tls-init.sh` changes | Yes, until regenerated |
 
-`kamado-api` takes every setting from environment variables set by the package (`BITCOIN_RPC_*`, `BITCOIN_ZMQ_BLOCK`, `KAMADO_LOG_LEVEL`, `MEMPOOL_BASE_URL`, `STRATUM_SERVERS`, paths) and re-reads them on every launch, so a Configure change takes effect on the restart it triggers.
+`kamado-api` takes every setting from environment variables set by the package (`BITCOIN_RPC_*`, `BITCOIN_ZMQ_BLOCK`, `MEMPOOL_BASE_URL`, `STRATUM_SERVERS`, paths) and re-reads them on every launch, so a Configure change takes effect on the restart it triggers.
 
 ## Dependencies
 
@@ -124,14 +124,14 @@ Every action is user-facing. Configure is the only one that writes settings; the
 
 | Action                       | Run it when                                                                  | What it changes                                                        | Cost                                                               | Safe to repeat                                              |
 | ---------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Configure                    | Changing vardiff, the coinbase tag, ZMQ, local TLS, log level or the explorer URL | `store.json`                                                         | Restarts the service; connected miners reconnect                   | Yes                                                         |
+| Configure                    | Changing vardiff, the coinbase tag, ZMQ, local TLS or the explorer URL | `store.json`                                                         | Restarts the service; connected miners reconnect                   | Yes                                                         |
 | Pool Status                  | Diagnosing anything, or finding the ports miners must use                    | Nothing                                                                | One round of local queries                                         | Yes                                                         |
 | Stratum TLS Certificate      | Setting up a miner that must trust the self-signed certificate               | Nothing                                                                | Reads two files                                                    | Yes                                                         |
 | Regenerate TLS Certificate   | Rotating an expired or distrusted self-signed certificate                    | Replaces `tls/*` on the `main` volume                                  | Restarts the service; every TLS miner reconnects and must re-trust the new fingerprint | Yes, each run mints a new certificate                       |
 | Reset Block Latency          | After tuning ZMQ or the node, to measure from a clean slate                  | The block-update latency counters in `kamado-api`                      | Immediate                                                          | Yes                                                         |
 | Rebuild Share Statistics     | The all-time difficulty distribution or rejection reasons look wrong or reset | The stored all-time totals, only when the log accounts for more shares than they hold | Rereads the whole CKPool log, millions of lines on an old pool; mining continues | Yes; a second run is refused while one is in progress |
 
-Pool Status returns a copyable text report: Bitcoin reachability and sync, ZMQ state, CKPool state, uptime, workers, shares, hashrate, best share, block submissions with any unconfirmed gap, connected miners, blocks found, and every stratum endpoint with its assigned port and attached domains. Stratum TLS Certificate and Regenerate TLS Certificate both return the SHA-256 fingerprint and the PEM; both are disabled until local TLS is enabled in Configure. Rebuild Share Statistics reports how many shares the log accounted for and whether the totals were replaced.
+Pool Status returns a copyable multi-line text report: Bitcoin reachability and sync, ZMQ state, CKPool state, uptime, workers, shares, hashrate, best share, block submissions with any unconfirmed gap, connected miners, blocks found, and every stratum endpoint with its assigned port and attached domains. Stratum TLS Certificate and Regenerate TLS Certificate both return the SHA-256 fingerprint and the PEM, which is also offered as a `stratum.crt` download once it exists; both are disabled until local TLS is enabled in Configure. Regenerate TLS Certificate, Reset Block Latency and Rebuild Share Statistics each ask for confirmation, naming what they change, before they run. Rebuild Share Statistics reports how many shares the log accounted for and whether the totals were replaced.
 
 ## Tasks
 
@@ -202,7 +202,6 @@ startos_managed_env_vars:
   - BITCOIN_RPC_PASSWORD
   - BITCOIN_ZMQ_BLOCK
   - POLL_INTERVAL
-  - KAMADO_LOG_LEVEL
   - MEMPOOL_BASE_URL
   - STRATUM_SERVERS
 dependencies:

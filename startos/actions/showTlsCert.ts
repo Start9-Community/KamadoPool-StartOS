@@ -18,7 +18,8 @@ export async function tlsCertResult(): Promise<
     sdk.volumes.main
       .readFile(`tls/${file}`, 'utf-8')
       .then((s) => s.toString().trim())
-      .catch(() => notYet)
+      .catch(() => null)
+  const crt = await read('stratum.crt')
   return {
     version: '1',
     title: i18n('Stratum TLS Certificate'),
@@ -34,9 +35,10 @@ export async function tlsCertResult(): Promise<
             'Use this for fingerprint pinning on miner firmwares that support it. Changes only when the certificate is regenerated.',
           ),
           type: 'single',
-          value: await read('fingerprint.txt'),
+          value: (await read('fingerprint.txt')) ?? notYet,
           copyable: true,
           qr: false,
+          launchable: false,
           masked: false,
         },
         {
@@ -44,11 +46,13 @@ export async function tlsCertResult(): Promise<
           description: i18n(
             'Full self-signed certificate. Copy the whole block including the BEGIN/END CERTIFICATE markers.',
           ),
-          type: 'single',
-          value: await read('stratum.crt'),
+          type: 'multiline',
+          value: crt ?? notYet,
           copyable: true,
+          ...(crt ? { filename: 'stratum.crt' } : {}),
           qr: false,
           masked: false,
+          filename: null,
         },
       ],
     },

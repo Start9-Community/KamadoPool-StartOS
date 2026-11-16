@@ -12,7 +12,9 @@ export const resetLatency = sdk.Action.withoutInput(
     description: i18n(
       'Zeroes the block-update latency counters (avg, last, wasted work, block count). Use this after tuning ZMQ or ckpool to start fresh measurements.',
     ),
-    warning: null,
+    warning: i18n(
+      'Zeroes the block-update latency counters (average, last, wasted work and block count). The measurements collected so far are lost.',
+    ),
     allowedStatuses: 'only-running',
     group: null,
     visibility: 'enabled',
