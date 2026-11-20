@@ -74,7 +74,7 @@ Everything lives in **Configure**: vardiff (starting, minimum and maximum diffic
 ## Troubleshooting
 
 - **No miners appear after connecting**: run **Pool Status** and check the port under Endpoints against what the miner is pointed at, then check the service logs for the miner's authorisation.
-- **Bitcoin RPC health check is failing**: make sure Bitcoin is running and fully synced. Kamado stops the stratum server while Bitcoin is unreachable so miners fail over to a backup pool, and brings it back on its own once Bitcoin answers.
+- **Bitcoin RPC health check is failing**: make sure Bitcoin is running and fully synced. Kamado stops the stratum server while Bitcoin is unreachable so miners fail over to a backup pool, and brings it back on its own once Bitcoin answers. If the check asks you to update Bitcoin, install Bitcoin's update; Kamado connects on its own once it is done.
 - **Best share resets to 0 after a block is found**: CKPool zeroes the current round's best on a solve; the dashboard's all-time column keeps the record.
 - **Miner rejects the self-signed certificate**: re-check that the whole PEM was pasted (including the BEGIN/END lines), or pin the fingerprint, or disable verification in the miner.
 - **Miner set to system certificates rejects the public-domain endpoint**: it must connect by the domain name, not by IP, and StartOS must have issued the certificate; see *Stratum over TLS* above.

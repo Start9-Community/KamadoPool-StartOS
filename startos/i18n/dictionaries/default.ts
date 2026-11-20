@@ -131,6 +131,7 @@ const dict = {
   'Certificate (PEM)': 122,
   'Full self-signed certificate. Copy the whole block including the BEGIN/END CERTIFICATE markers.': 123,
   'Shows the self-signed stratum TLS certificate: SHA-256 fingerprint for pinning and the full PEM to paste into miner firmware (e.g. the AxeOS "Stratum SSL Cert" field).': 124,
+  'Update Bitcoin so Kamado Pool can connect to it': 126,
 } as const
 
 /**
