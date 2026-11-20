@@ -1,5 +1,6 @@
 import { FileHelper } from '@start9labs/start-sdk'
 import { manifest as bitcoindManifest } from 'bitcoin-core-startos/startos/manifest'
+import { rpcCookieName, rpcVolumeId } from 'bitcoin-core-startos/startos/utils'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
@@ -71,7 +72,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       })
       .mountDependency<typeof bitcoindManifest>({
         dependencyId: 'bitcoind',
-        volumeId: 'main',
+        volumeId: rpcVolumeId,
         subpath: null,
         mountpoint: btcMountpoint,
         readonly: true,
@@ -81,7 +82,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const rootfs = await kamadoSub.rootfs
 
   const cookie = parseCookie(
-    await FileHelper.string(`${rootfs}${btcMountpoint}/.cookie`)
+    await FileHelper.string(`${rootfs}${btcMountpoint}/${rpcCookieName}`)
       .read()
       .const(effects),
   )

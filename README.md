@@ -62,13 +62,13 @@ CKPool always binds three stratum listeners inside the container — plaintext o
 
 ## Volume and Data Layout
 
-Two volumes, separating the service's own state from CKPool's, plus a read-only view of Bitcoin's data directory.
+Two volumes, separating the service's own state from CKPool's, plus a read-only view of Bitcoin's `public` volume.
 
 | Volume     | Mount Point      | Contents                                                                                                       |
 | ---------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
 | `main`     | `/root/.kamado`  | `store.json` (settings), `data/kamado.db` (SQLite: found blocks, share statistics, best shares, log cursor), `tls/` (self-signed stratum certificate and key) |
 | `ckpool`   | `/root/.ckpool`  | CKPool's own state (`users/`, `workers/`, pool status) and its log at `logs/ckpool.log`                         |
-| `bitcoind` | `/mnt/bitcoind`  | Bitcoin's `main` volume, read-only, solely for the RPC `.cookie`                                                |
+| `bitcoind` | `/mnt/bitcoind`  | Bitcoin's `public` volume, read-only, solely for the RPC `.cookie`                                              |
 
 The rendered CKPool configuration (`/etc/ckpool/ckpool.conf`) and the stunnel configuration (`/etc/stunnel/stratum.conf`) live on the subcontainer's root filesystem, not on a volume: they carry Bitcoin's RPC credentials and are regenerated on every start.
 
@@ -91,7 +91,7 @@ Bitcoin is required and must be running and synced; the service builds block tem
 
 | Dependency | Requirement       | Health checks required     | Mounts                                            | Why                                                                      |
 | ---------- | ----------------- | -------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| Bitcoin    | Required, running | `bitcoind`, `sync-progress` | Its `main` volume at `/mnt/bitcoind`, read-only  | RPC over the internal bridge with cookie authentication; ZMQ `hashblock` for instant new-block notification |
+| Bitcoin    | Required, running | `bitcoind`, `sync-progress` | Its `public` volume at `/mnt/bitcoind`, read-only | RPC over the internal bridge with cookie authentication; ZMQ `hashblock` for instant new-block notification |
 
 Sync progress is required deliberately: mining against an unsynced node produces work on a stale tip. The RPC address, ZMQ address and cookie are all read reactively, so Bitcoin being installed, restarted, re-bound or removed heals the service with a restart, while a routine Bitcoin update does not restart it. Until Bitcoin is reachable the dashboard runs with placeholder credentials and reports it as unreachable, and `kamado-ckpool-run.sh` keeps CKPool from starting.
 
