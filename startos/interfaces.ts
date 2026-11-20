@@ -91,8 +91,6 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     addSsl: {
       preferredExternalPort: stratumPublicTlsExternalPort,
       alpn: null,
-      addXForwardedHeaders: false,
-      auth: null,
     },
     secure: null,
   })
