@@ -48,35 +48,43 @@ export const main = sdk.setupMain(async ({ effects }) => {
   if (!store) throw new Error('No store.json')
 
   const bitcoind = await bitcoindBridge(effects)
+  // An older Bitcoin lacks the public volume, and mounting a missing volume fails the start.
+  const hasRpcVolume = await sdk
+    .getServiceManifest(effects, 'bitcoind', (m) =>
+      m?.volumes.includes(rpcVolumeId),
+    )
+    .const()
   const tlsDomains = await sdk.host
     .get(effects, { hostId: stratumPublicTlsHostId }, (host) =>
       Object.keys(host?.publicDomains ?? {}).sort(),
     )
     .const()
 
+  const mounts = sdk.Mounts.of()
+    .mountVolume({
+      volumeId: 'main',
+      subpath: null,
+      mountpoint: kamadoRoot,
+      readonly: false,
+    })
+    .mountVolume({
+      volumeId: 'ckpool',
+      subpath: null,
+      mountpoint: ckpoolRoot,
+      readonly: false,
+    })
   const kamadoSub = sdk.SubContainer.of(
     effects,
     { imageId: 'main' },
-    sdk.Mounts.of()
-      .mountVolume({
-        volumeId: 'main',
-        subpath: null,
-        mountpoint: kamadoRoot,
-        readonly: false,
-      })
-      .mountVolume({
-        volumeId: 'ckpool',
-        subpath: null,
-        mountpoint: ckpoolRoot,
-        readonly: false,
-      })
-      .mountDependency<typeof bitcoindManifest>({
-        dependencyId: 'bitcoind',
-        volumeId: rpcVolumeId,
-        subpath: null,
-        mountpoint: btcMountpoint,
-        readonly: true,
-      }),
+    hasRpcVolume
+      ? mounts.mountDependency<typeof bitcoindManifest>({
+          dependencyId: 'bitcoind',
+          volumeId: rpcVolumeId,
+          subpath: null,
+          mountpoint: btcMountpoint,
+          readonly: true,
+        })
+      : mounts,
     'kamado',
   )
   const rootfs = await kamadoSub.rootfs
@@ -222,6 +230,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
       ready: {
         display: i18n('Bitcoin RPC'),
         fn: async () => {
+          if (hasRpcVolume === false)
+            return {
+              result: 'failure',
+              message: i18n('Update Bitcoin so Kamado Pool can connect to it'),
+            }
           const h = await fetchJson<HealthPayload>(healthUrl)
           if (!h) return apiUnreachable
           if (h.bitcoin)

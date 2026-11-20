@@ -122,6 +122,7 @@ export default {
     123: 'Certificado autofirmado completo. Copie todo el bloque incluidos los marcadores BEGIN/END CERTIFICATE.',
     124: 'Muestra el certificado TLS autofirmado de stratum: huella SHA-256 para fijar y el PEM completo para pegar en el firmware del minero (p. ej. el campo «Stratum SSL Cert» de AxeOS).',
     125: 'Pone a cero los contadores de latencia de actualización de bloques (promedio, último, trabajo desperdiciado y conteo de bloques). Las mediciones recogidas hasta ahora se pierden.',
+    126: 'Actualice Bitcoin para que Kamado Pool pueda conectarse a él',
   },
   de_DE: {
     0: 'Kamado-API ist nicht erreichbar, der Dienst ist möglicherweise ausgefallen',
@@ -244,6 +245,7 @@ export default {
     123: 'Vollständiges selbstsigniertes Zertifikat. Kopieren Sie den gesamten Block einschließlich der BEGIN/END-CERTIFICATE-Markierungen.',
     124: 'Zeigt das selbstsignierte Stratum-TLS-Zertifikat: SHA-256-Fingerabdruck zum Pinnen und das vollständige PEM zum Einfügen in die Miner-Firmware (z. B. das AxeOS-Feld „Stratum SSL Cert“).',
     125: 'Setzt die Latenzzähler für Blockaktualisierungen auf null (Durchschnitt, letzter, verschwendete Arbeit und Blockanzahl). Die bisher gesammelten Messungen gehen verloren.',
+    126: 'Aktualisieren Sie Bitcoin, damit Kamado Pool sich damit verbinden kann',
   },
   pl_PL: {
     0: 'API Kamado jest nieosiągalne, usługa może nie działać',
@@ -366,6 +368,7 @@ export default {
     123: 'Pełny certyfikat samopodpisany. Skopiuj cały blok wraz ze znacznikami BEGIN/END CERTIFICATE.',
     124: 'Pokazuje samopodpisany certyfikat TLS stratum: odcisk SHA-256 do przypięcia i pełny PEM do wklejenia w firmware górnika (np. pole „Stratum SSL Cert” w AxeOS).',
     125: 'Zeruje liczniki opóźnień aktualizacji bloków (średnia, ostatni, zmarnowana praca i liczba bloków). Zebrane dotąd pomiary zostaną utracone.',
+    126: 'Zaktualizuj Bitcoina, aby Kamado Pool mógł się z nim połączyć',
   },
   fr_FR: {
     0: 'L’API Kamado est injoignable, le service est peut-être arrêté',
@@ -488,5 +491,6 @@ export default {
     123: 'Certificat auto-signé complet. Copiez tout le bloc, y compris les marqueurs BEGIN/END CERTIFICATE.',
     124: 'Affiche le certificat TLS stratum auto-signé : empreinte SHA-256 à épingler et PEM complet à coller dans le firmware du mineur (p. ex. le champ « Stratum SSL Cert » d’AxeOS).',
     125: 'Remet à zéro les compteurs de latence de mise à jour des blocs (moyenne, dernier, travail gaspillé et nombre de blocs). Les mesures recueillies jusqu’ici sont perdues.',
+    126: "Mettez Bitcoin à jour pour que Kamado Pool puisse s'y connecter",
   },
 } satisfies Record<string, LangDict>
