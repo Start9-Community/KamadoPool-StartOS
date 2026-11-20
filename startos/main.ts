@@ -229,6 +229,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .addHealthCheck('bitcoin', {
       ready: {
         display: i18n('Bitcoin RPC'),
+        ...(hasRpcVolume === false && {
+          gracePeriod: 0,
+          trigger: sdk.trigger.onceTrigger,
+        }),
         fn: async () => {
           if (hasRpcVolume === false)
             return {
